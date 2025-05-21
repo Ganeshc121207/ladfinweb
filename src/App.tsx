@@ -1,5 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import MicroLoans from './pages/MicroLoans';
@@ -12,21 +15,36 @@ import Footer from './components/Footer';
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-secondary-dark text-gray-100">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/micro-loans" element={<MicroLoans />} />
-          <Route path="/grocery-delivery" element={<GroceryDelivery />} />
-          <Route path="/digital-subscriptions" element={<DigitalSubscriptions />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-        </Routes>
-        <Footer />
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-secondary-dark text-gray-100">
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/micro-loans" element={
+              <ProtectedRoute>
+                <MicroLoans />
+              </ProtectedRoute>
+            } />
+            <Route path="/grocery-delivery" element={
+              <ProtectedRoute>
+                <GroceryDelivery />
+              </ProtectedRoute>
+            } />
+            <Route path="/digital-subscriptions" element={
+              <ProtectedRoute>
+                <DigitalSubscriptions />
+              </ProtectedRoute>
+            } />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+          </Routes>
+          <Footer />
+          <Toaster position="top-right" />
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

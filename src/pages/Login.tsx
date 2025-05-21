@@ -1,27 +1,39 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import Button from '../components/Button';
+import { auth } from '../lib/auth';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname || '/';
+  
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   });
-  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setLoading(true);
 
     try {
-      // TODO: Implement Supabase authentication
-      console.log('Login attempt:', formData);
-    } catch (err) {
-      setError('Invalid email or password');
+      await auth.signIn({
+        email: formData.email,
+        password: formData.password,
+      });
+      
+      toast.success('Successfully logged in!');
+      navigate(from, { replace: true });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to log in');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,15 +51,9 @@ const Login: React.FC = () => {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
                 Email address
               </label>
               <div className="mt-1 relative">
@@ -68,7 +74,7 @@ const Login: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
                 Password
               </label>
               <div className="mt-1 relative">
@@ -122,8 +128,21 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          <Button type="submit" variant="primary" size="lg" className="w-full">
-            Sign in
+          <Button 
+            type="submit" 
+            variant="primary" 
+            size="lg" 
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+                Signing in...
+              </div>
+            ) : (
+              'Sign in'
+            )}
           </Button>
         </form>
       </div>

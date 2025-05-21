@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import Button from '../components/Button';
+import { auth } from '../lib/auth';
 
 const SignUp: React.FC = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    username: '',
     password: '',
     confirmPassword: '',
     acceptTerms: false
   });
-  const [error, setError] = useState('');
 
   const validatePassword = (password: string) => {
     const minLength = password.length >= 8;
@@ -32,24 +34,34 @@ const SignUp: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      toast.error('Passwords do not match');
+      setLoading(false);
       return;
     }
 
     const { isValid } = validatePassword(formData.password);
     if (!isValid) {
-      setError('Password does not meet requirements');
+      toast.error('Password does not meet requirements');
+      setLoading(false);
       return;
     }
 
     try {
-      // TODO: Implement Supabase authentication
-      console.log('Sign up attempt:', formData);
-    } catch (err) {
-      setError('Failed to create account');
+      await auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+      });
+      
+      toast.success('Account created successfully!');
+      navigate('/login');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create account');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,15 +88,9 @@ const SignUp: React.FC = () => {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-4">
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-1">
                 Full Name
               </label>
               <div className="mt-1 relative">
@@ -105,7 +111,7 @@ const SignUp: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
                 Email address
               </label>
               <div className="mt-1 relative">
@@ -126,28 +132,7 @@ const SignUp: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-300">
-                Username
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-500" />
-                </div>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required
-                  className="bg-secondary-dark appearance-none rounded-lg block w-full pl-10 px-3 py-2 border border-gray-700 placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="Choose a username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
                 Password
               </label>
               <div className="mt-1 relative">
@@ -190,7 +175,7 @@ const SignUp: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1">
                 Confirm Password
               </label>
               <div className="mt-1 relative">
@@ -240,8 +225,21 @@ const SignUp: React.FC = () => {
             </div>
           </div>
 
-          <Button type="submit" variant="primary" size="lg" className="w-full">
-            Create Account
+          <Button 
+            type="submit" 
+            variant="primary" 
+            size="lg" 
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+                Creating account...
+              </div>
+            ) : (
+              'Create Account'
+            )}
           </Button>
         </form>
       </div>

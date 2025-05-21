@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { toast } from 'react-hot-toast';
 
 export interface SignUpData {
   email: string;
