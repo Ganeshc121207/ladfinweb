@@ -31,7 +31,7 @@ async function sendEmail(data: z.infer<typeof contactSchema>) {
 
   await smtp.send({
     from: Deno.env.get('SMTP_FROM') || '',
-    to: Deno.env.get('DEVELOPER_EMAIL') || '',
+    to: 'ironknight.122623@gmail.com',
     subject: 'New Contact Form Submission',
     content: `
       Name: ${data.name}

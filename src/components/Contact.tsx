@@ -1,6 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Button from './Button';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { z } from 'zod';
+
+const contactSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
+  message: z.string().min(10, 'Message must be at least 10 characters').max(1000, 'Message is too long'),
+});
 
 const ContactInfo: React.FC = () => {
   return (
@@ -81,6 +90,63 @@ const ContactInfo: React.FC = () => {
 };
 
 const Contact: React.FC = () => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const data = {
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        phone: formData.phone,
+        message: `Subject: ${formData.subject}\n\n${formData.message}`,
+      };
+
+      const validatedData = contactSchema.parse(data);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/contact-form`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(validatedData),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit form');
+      }
+
+      toast.success('Message sent successfully!');
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: '',
+      });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send message');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section id="contact" className="py-20 bg-secondary">
       <div className="container mx-auto px-4">
@@ -94,7 +160,7 @@ const Contact: React.FC = () => {
         
         <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
           <div>
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-1">
@@ -103,6 +169,9 @@ const Contact: React.FC = () => {
                   <input
                     type="text"
                     id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    required
                     className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
@@ -114,6 +183,9 @@ const Contact: React.FC = () => {
                   <input
                     type="text"
                     id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    required
                     className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
@@ -126,6 +198,9 @@ const Contact: React.FC = () => {
                 <input
                   type="email"
                   id="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
                   className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -137,6 +212,8 @@ const Contact: React.FC = () => {
                 <input
                   type="tel"
                   id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -147,6 +224,9 @@ const Contact: React.FC = () => {
                 </label>
                 <select
                   id="subject"
+                  value={formData.subject}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  required
                   className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="">Select a subject</option>
@@ -164,12 +244,27 @@ const Contact: React.FC = () => {
                 <textarea
                   id="message"
                   rows={5}
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  required
                   className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 ></textarea>
               </div>
               
-              <Button type="submit" size="lg" className="w-full">
-                Send Message
+              <Button 
+                type="submit" 
+                size="lg" 
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+                    Sending...
+                  </div>
+                ) : (
+                  'Send Message'
+                )}
               </Button>
             </form>
           </div>
