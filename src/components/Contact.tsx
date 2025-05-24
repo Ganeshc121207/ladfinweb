@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import Button from './Button';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { z } from 'zod';
 
-const contactSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-  message: z.string().min(10, 'Message must be at least 10 characters').max(1000, 'Message is too long'),
-});
+interface ContactFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+}
 
 const ContactInfo: React.FC = () => {
   return (
@@ -91,13 +92,13 @@ const ContactInfo: React.FC = () => {
 
 const Contact: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ContactFormData>({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     subject: '',
-    message: '',
+    message: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,30 +106,23 @@ const Contact: React.FC = () => {
     setLoading(true);
 
     try {
-      const data = {
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        email: formData.email,
-        phone: formData.phone,
-        message: `Subject: ${formData.subject}\n\n${formData.message}`,
-      };
-
-      const validatedData = contactSchema.parse(data);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/contact-form`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify(validatedData),
-        }
-      );
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/contact-form`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: formData.email,
+          phone: formData.phone,
+          message: `Subject: ${formData.subject}\n\n${formData.message}`
+        })
+      });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to submit form');
+        throw new Error(error.message || 'Failed to submit form');
       }
 
       toast.success('Message sent successfully!');
@@ -138,13 +132,21 @@ const Contact: React.FC = () => {
         email: '',
         phone: '',
         subject: '',
-        message: '',
+        message: ''
       });
     } catch (error: any) {
       toast.error(error.message || 'Failed to send message');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   return (
@@ -169,8 +171,9 @@ const Contact: React.FC = () => {
                   <input
                     type="text"
                     id="firstName"
+                    name="firstName"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    onChange={handleChange}
                     required
                     className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
@@ -183,8 +186,9 @@ const Contact: React.FC = () => {
                   <input
                     type="text"
                     id="lastName"
+                    name="lastName"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    onChange={handleChange}
                     required
                     className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
@@ -198,8 +202,9 @@ const Contact: React.FC = () => {
                 <input
                   type="email"
                   id="email"
+                  name="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={handleChange}
                   required
                   className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
@@ -212,8 +217,9 @@ const Contact: React.FC = () => {
                 <input
                   type="tel"
                   id="phone"
+                  name="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={handleChange}
                   className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -224,8 +230,9 @@ const Contact: React.FC = () => {
                 </label>
                 <select
                   id="subject"
+                  name="subject"
                   value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  onChange={handleChange}
                   required
                   className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
@@ -243,9 +250,10 @@ const Contact: React.FC = () => {
                 </label>
                 <textarea
                   id="message"
+                  name="message"
                   rows={5}
                   value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  onChange={handleChange}
                   required
                   className="w-full px-4 py-2 rounded-lg bg-secondary-dark border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 ></textarea>
